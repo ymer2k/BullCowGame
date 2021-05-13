@@ -1,7 +1,3 @@
-// BullCowGame.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-
 /* This is the console executable, that makes use of the BUllCow class
 * This acts as the view in a MVC pattern, and is resposible for all 
 * user interaction. For game logic see the FBullCowGame class.
@@ -11,101 +7,130 @@
 #include <string>
 #include "FBullCowGame.h"
 
+// to make suntax unreal friendly
 using Ftext = std::string;
 using int32 = int;
 
+// function prototypes as outside a class
 void PrintIntro();
-Ftext GetGuess();
+void PrintGameSummary();
+Ftext GetValidGuess();
 void PlayGame();
 bool AskToPlayAgain();
 
-FBullCowGame BCGame; //Instantiate a new game
 
+FBullCowGame BCGame; //Instantiate a new game, which we re-use across plays.
+
+// the entry point of our application
 int main()
 {
-   
-
     do {
         PrintIntro();
         PlayGame();
+        PrintGameSummary();
     }while (AskToPlayAgain());
 
     return 0;
 }
 
+void PrintIntro()
+{
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << "Welcome to Bulls and Cows, a fun word game." << std::endl;
+    std::cout << "\\|/          (__)" << std::endl;
+    std::cout << "     `\\------(oo)" << std::endl;
+    std::cout << "        ||   (__)" << std::endl;
+    std::cout << "        ||w--||     \\|/" << std::endl;
+    std::cout << "\\|/" << std::endl;
+
+    std::cout << "Can you guess the " << BCGame.GetHiddenWordLength() << " letter isogram I'm thinking of?" << std::endl;
+    std::cout << std::endl;
+    return;
+}
+
+// plays a single game to completion.
 void PlayGame()
 {
     BCGame.Reset();
 
     int32 MaxTries = BCGame.GetMaxTries();
     std::cout << "Maximum number of tries: " << MaxTries << std::endl;
-    // loop for the number of turns askingn for guesses.
-   // TODO change from FOR to WHILE loop once we have are validating tries.
-    for (int32 i = 0; i < MaxTries; i++)
-    {
-        //std::cout << i + 1 << " guess." << std::endl;
-        Ftext Guess = GetGuess(); // TODO make loop checking valid
 
-        EGuessStatus Status = BCGame.CheckGuessValidity(Guess);
+    // loop asking for guesses while the game is NOT won.
+    // Is NOT won and there are still tries remaning.
+    FBullCowCount BullCowCount;
+    while(!BCGame.IsGameWon() && BCGame.GetCurrentTry() <= MaxTries)
+    {
+        Ftext Guess = GetValidGuess();
 
         // submit valid guess to the game, and receive counts
-        FBullCowCount BullCowCount =  BCGame.SubmitGuess(Guess);
+        BullCowCount =  BCGame.SubmitValidGuess(Guess);
         // print number of bulls and cows.
         std::cout << "Bulls = " << BullCowCount.Bulls;
         std::cout << ". Cows = " << BullCowCount.Cows << std::endl;
         std::cout << std::endl;
     }
 
-    // TODO summarise gamesu
 }
 
 bool AskToPlayAgain()
 {
-    std::cout << "Do you want to play again? (y/n)";
+    std::cout << "Do you want to play again with the same hidde word (y/n)? ";
     Ftext Response = "";
     std::getline(std::cin, Response);
-    std::cout << "Is it y? ";
+    //std::cout << "Is it y? ";
     if (((Response[0] == 'y') || (Response[0] == 'Y')))
     {
-        std::cout << "true" << std::endl;
         return true;
     }
     else 
     { 
-        std::cout << "false" << std::endl; 
         return false;
     }
     std::cout << std::endl;
-        
-    //std::cout << "Is it y? " << ((Response[0] == 'y') || (Response[0] == 'Y')) << std::endl;
 }
 
-
-Ftext GetGuess() // TODO change to get valid guess
+// loop continually until the user gives a valid guess.
+Ftext GetValidGuess()
 {   
-    int32 CurrentTry = BCGame.GetCurrentTry();
-    std::cout << "Try: " << CurrentTry << ". " << "Enter your guess: ";
-    Ftext Guess = "";
-    std::getline(std::cin, Guess);
-    return Guess;
+    EGuessStatus Status = EGuessStatus::Invalid_Status;
+    do
+    {
+        int32 CurrentTry = BCGame.GetCurrentTry();
+        std::cout << "Try: " << CurrentTry << " of " << BCGame.GetMaxTries() << ". Enter your guess: ";
+        Ftext Guess = "";
+        std::getline(std::cin, Guess);
+
+        Status = BCGame.CheckGuessValidity(Guess);
+        switch (Status)
+        {
+        case EGuessStatus::Not_Isogram:
+            std::cout << "Please enter an isogram." << std::endl;
+            break;
+        case EGuessStatus::Not_Lowercase:
+            std::cout << "Please enter only lowercase letters." << std::endl;
+            break;
+        case EGuessStatus::Wrong_Length:
+            std::cout << "Please enter a " << BCGame.GetHiddenWordLength() << " letter word." << std::endl;
+            break;
+        default:
+            return Guess;
+        }
+        std::cout << std::endl;
+    } while (Status != EGuessStatus::OK); // Keep looping until we get no errors
 }
 
-//Introduce the game
-void PrintIntro()
+void PrintGameSummary()
 {
-    std::cout << "Welcome to Bulls and Cows, a fun word game." << std::endl;
-    std::cout << "Can you guess the " << BCGame.GetHiddenWordLength() << " letter isogram I'm thinking of?" << std::endl;
-    std::cout << std::endl;
-    return;
+    if (BCGame.IsGameWon())
+    {
+        std::cout << "Correct! Congratulations!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Game Over, Better luck next time!" << std::endl;
+    }
 }
-
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
 // Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
